@@ -6,7 +6,11 @@
 - 
 - 
 
-**Link do deploy da plataforma web:** 
+**Repositório no GitHub:** https://github.com/YuriBragaJR/rede-solidaria-estrutura
+
+**Deploy do aplicativo mobile (web):** https://nutre-app.onrender.com
+
+**Deploy da plataforma web:** https://nutre-painel.onrender.com
 
 **Link do Expo Snack (se utilizado):** 
 
@@ -35,7 +39,7 @@ Quando um comerciante publica uma doação pelo app ou pelo painel web, o regist
 - Aplicativo: React Native e Expo.
 - Plataforma web: JavaScript, Vite e Tailwind CSS.
 - Backend e armazenamento: Supabase.
-- Hospedagem prevista: Render.
+- Hospedagem: Render.
 
 ## Como executar localmente
 
@@ -78,11 +82,14 @@ npm run preview
 
 As migrações necessárias estão em `supabase/migrations`. Execute-as no projeto Supabase em ordem numérica para criar ou atualizar as tabelas, funções, políticas de acesso e bucket de imagens usados pelas interfaces.
 
-## Deploy
+## Acessar os deploys
 
-O painel web é publicado no Render a partir do diretório `web`. O endereço será inserido aqui após a publicação:
+As duas interfaces podem ser acessadas diretamente pelos links, sem baixar o repositório, instalar Node.js ou configurar dependências localmente:
 
-- **Plataforma web:** 
+- **Aplicativo mobile (versão web):** https://nutre-app.onrender.com
+- **Painel da plataforma web:** https://nutre-painel.onrender.com
 
-O arquivo `render.yaml` contém a configuração dos serviços web e mobile. O serviço mobile publicado dessa forma corresponde à versão web do Expo; para gerar aplicativos Android ou iOS instaláveis, é necessário configurar um processo de build mobile próprio.
+O link do aplicativo mobile abre a versão web exportada pelo Expo no navegador, com navegação adaptada para dispositivos móveis. Isso facilita testar o fluxo do app e suas telas sem precisar baixar todo o código-fonte. O link do painel web abre a interface de gestão.
+
+O arquivo `render.yaml` contém a configuração dos dois serviços publicados no Render. O deploy mobile é a versão web do Expo; para distribuir o aplicativo como instalação nativa Android ou iOS, é necessário gerar um build mobile próprio.
 
