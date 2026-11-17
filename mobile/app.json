@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Rede Solidaria",
+    "slug": "rede-solidaria",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Nutre precisa acessar suas fotos para anexar imagens às doações.",
+          "cameraPermission": "O Nutre precisa acessar sua câmera para fotografar as doações.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    }
+  }
+}
