@@ -2,9 +2,10 @@
 
 **Integrantes**
 
-- 
-- 
-- 
+- Lilla Barbosa Bordignon | RM 565661
+
+- Yuri Braga Jardim Rubine | RM 563293
+
 
 **Repositório no GitHub:** https://github.com/YuriBragaJR/rede-solidaria-estrutura
 
