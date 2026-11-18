@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, Pressable, RefreshControl,
+  ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, RefreshControl,
   ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Bell, Clock3, MapPin, Package, Search, UsersRound } from 'lucide-react-native';
+import { Bell, CheckCircle2, Clock3, MapPin, Package, Search, UsersRound } from 'lucide-react-native';
 import { supabase } from '../services/supabase';
 
 const filters = ['Todas', 'Padaria', 'Hortifruti', 'Restaurante', 'Supermercado', 'Laticínios'];
@@ -30,6 +30,7 @@ export default function VolunteerFeed({ navigation, route }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Todas');
   const [reservingId, setReservingId] = useState(null);
+  const [reservationConfirmation, setReservationConfirmation] = useState(null);
   const [loadError, setLoadError] = useState('');
 
   const fetchDonations = useCallback(async () => {
@@ -83,17 +84,32 @@ export default function VolunteerFeed({ navigation, route }) {
 
   const reserve = async (item) => {
     setReservingId(item.id);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Entre na sua conta', 'Faça login para reservar uma doação.');
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('reserve_donation', { p_donation_id: String(item.id) });
+      if (error) {
+        Alert.alert('Não foi possível reservar', error.message);
+        return;
+      }
+
+      const code = Array.isArray(data)
+        ? data[0]?.pickup_code
+        : data?.pickup_code || (typeof data === 'string' ? data : null);
+
+      // A confirmação aparece assim que a reserva é salva. A atualização da lista
+      // fica local para não atrasar o aviso enquanto o mural consulta o servidor.
+      setDonations((current) => current.filter((donation) => String(donation.id) !== String(item.id)));
+      setReservationConfirmation({ title: item.title, code: code || null });
+    } catch (error) {
+      Alert.alert('Não foi possível reservar', error?.message || 'Verifique sua conexão e tente novamente.');
+    } finally {
       setReservingId(null);
-      return Alert.alert('Entre na sua conta', 'Faça login para reservar uma doação.');
     }
-    const { data, error } = await supabase.rpc('reserve_donation', { p_donation_id: String(item.id) });
-    setReservingId(null);
-    if (error) return Alert.alert('Não foi possível reservar', error.message);
-    await fetchDonations();
-    const code = data?.[0]?.pickup_code;
-    Alert.alert('Doação reservada', `Seu código de retirada é ${code || '—'}. Ele também está salvo na aba Minhas Coletas.`);
   };
 
   const visible = donations.filter((item) => {
@@ -161,6 +177,51 @@ export default function VolunteerFeed({ navigation, route }) {
         />
       )}
       </View>
+      <Modal
+        visible={!!reservationConfirmation}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReservationConfirmation(null)}
+      >
+        <View style={styles.confirmationBackdrop}>
+          <View accessibilityViewIsModal style={styles.confirmationCard}>
+            <CheckCircle2 size={42} color="#116451" accessibilityElementsHidden importantForAccessibility="no" />
+            <Text accessibilityRole="header" style={styles.confirmationTitle}>Reserva confirmada!</Text>
+            <Text style={styles.confirmationDescription}>
+              {reservationConfirmation?.title ? `Você reservou ${reservationConfirmation.title}. ` : ''}
+              Consulte sua coleta na aba Coletas.
+            </Text>
+            {reservationConfirmation?.code ? (
+              <View style={styles.confirmationVoucher}>
+                <Text style={styles.confirmationCodeLabel}>CÓDIGO DE RETIRADA</Text>
+                <Text selectable accessibilityLabel={`Código de retirada ${reservationConfirmation.code}`} style={styles.confirmationCode}>
+                  {reservationConfirmation.code}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.confirmationCodeHint}>Seu código também ficará disponível nos detalhes da coleta.</Text>
+            )}
+            <Text style={styles.confirmationHint}>Mostre o código no estabelecimento para confirmar a retirada.</Text>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.confirmationPrimary}
+              onPress={() => {
+                setReservationConfirmation(null);
+                navigation.navigate('Actions');
+              }}
+            >
+              <Text style={styles.confirmationPrimaryText}>Ver minhas coletas</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.confirmationSecondary}
+              onPress={() => setReservationConfirmation(null)}
+            >
+              <Text style={styles.confirmationSecondaryText}>Continuar no mural</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -219,4 +280,17 @@ const styles = StyleSheet.create({
   emptyText: { color: '#52665b', fontFamily: 'Roboto_400Regular', fontSize: 12, textAlign: 'center', marginTop: 5 },
   retryButton: { minHeight: 44, marginTop: 13, borderRadius: 10, backgroundColor: '#116451', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   retryText: { color: '#fff', fontFamily: 'Roboto_700Bold', fontSize: 11 },
+  confirmationBackdrop: { flex: 1, backgroundColor: 'rgba(21, 42, 32, 0.52)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  confirmationCard: { width: '100%', maxWidth: 420, backgroundColor: '#fffefb', borderRadius: 22, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: '#e4efdf' },
+  confirmationTitle: { color: '#174d3e', fontFamily: 'Roboto_700Bold', fontSize: 21, textAlign: 'center', marginTop: 12 },
+  confirmationDescription: { color: '#52665b', fontFamily: 'Roboto_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 8 },
+  confirmationVoucher: { width: '100%', alignItems: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: '#9fc8a7', backgroundColor: '#f5fbf1', borderRadius: 15, padding: 14, marginTop: 18 },
+  confirmationCodeLabel: { color: '#385f4d', fontFamily: 'Roboto_700Bold', fontSize: 11, letterSpacing: 1 },
+  confirmationCode: { color: '#116451', fontFamily: 'Roboto_700Bold', fontSize: 32, letterSpacing: 5, marginTop: 5 },
+  confirmationCodeHint: { color: '#52665b', fontFamily: 'Roboto_500Medium', fontSize: 13, textAlign: 'center', marginTop: 18 },
+  confirmationHint: { color: '#52665b', fontFamily: 'Roboto_400Regular', fontSize: 12, textAlign: 'center', lineHeight: 18, marginTop: 11 },
+  confirmationPrimary: { width: '100%', minHeight: 48, borderRadius: 12, backgroundColor: '#116451', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  confirmationPrimaryText: { color: '#fff', fontFamily: 'Roboto_700Bold', fontSize: 15 },
+  confirmationSecondary: { minHeight: 44, justifyContent: 'center', alignItems: 'center', marginTop: 4, paddingHorizontal: 14 },
+  confirmationSecondaryText: { color: '#116451', fontFamily: 'Roboto_700Bold', fontSize: 14 },
 });
