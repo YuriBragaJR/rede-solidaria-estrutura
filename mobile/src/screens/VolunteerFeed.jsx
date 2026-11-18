@@ -33,8 +33,8 @@ export default function VolunteerFeed({ navigation, route }) {
   const [reservationConfirmation, setReservationConfirmation] = useState(null);
   const [loadError, setLoadError] = useState('');
 
-  const fetchDonations = useCallback(async () => {
-    setLoading(true);
+  const fetchDonations = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setLoadError('');
     await supabase.rpc('release_expired_donations');
     let { data, error } = await supabase
@@ -64,6 +64,7 @@ export default function VolunteerFeed({ navigation, route }) {
   }, []);
 
   useFocusEffect(useCallback(() => {
+    let refreshTimer;
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -71,7 +72,22 @@ export default function VolunteerFeed({ navigation, route }) {
       setName(data?.responsible_name?.split(' ')[0] || user.user_metadata?.responsible_name?.split(' ')[0] || '');
     };
     loadProfile();
+
+    // Keep the mural current while it is open. Debouncing avoids duplicate
+    // reads when Supabase emits several changes close together.
+    const channel = supabase
+      .channel('available-donations-feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donations' }, () => {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => fetchDonations({ silent: true }), 250);
+      })
+      .subscribe();
     fetchDonations();
+
+    return () => {
+      clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
   }, [fetchDonations]));
 
   useFocusEffect(useCallback(() => {
