@@ -13,8 +13,6 @@
 
 **Deploy da plataforma web:** https://nutre-painel.onrender.com
 
-**Link do Expo Snack (se utilizado):** 
-
 ## Sobre o projeto
 
 O Nutre Vidas é uma plataforma que conecta estabelecimentos com alimentos excedentes em boas condições a ONGs e pessoas voluntárias que podem retirá-los e distribuí-los. A solução busca reduzir o desperdício de alimentos e facilitar a chegada desses recursos a quem precisa.
